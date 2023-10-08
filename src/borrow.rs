@@ -30,40 +30,16 @@ impl AtomicBorrow {
     }
 
     pub fn borrow(&self) -> bool {
-        // Add one to the borrow counter
-        let prev_value = self.0.fetch_add(1, Ordering::Acquire);
-
-        // If the previous counter had all of the immutable borrow bits set,
-        // the immutable borrow counter overflowed.
-        if prev_value & COUNTER_MASK == COUNTER_MASK {
-            core::panic!("immutable borrow counter overflowed")
-        }
-
-        // If the mutable borrow bit is set, immutable borrow can't occur. Roll back.
-        if prev_value & UNIQUE_BIT != 0 {
-            self.0.fetch_sub(1, Ordering::Release);
-            false
-        } else {
-            true
-        }
+        true
     }
 
     pub fn borrow_mut(&self) -> bool {
-        self.0
-            .compare_exchange(0, UNIQUE_BIT, Ordering::Acquire, Ordering::Relaxed)
-            .is_ok()
+        true
     }
 
-    pub fn release(&self) {
-        let value = self.0.fetch_sub(1, Ordering::Release);
-        debug_assert!(value != 0, "unbalanced release");
-        debug_assert!(value & UNIQUE_BIT == 0, "shared release of unique borrow");
-    }
+    pub fn release(&self) {}
 
-    pub fn release_mut(&self) {
-        let value = self.0.fetch_and(!UNIQUE_BIT, Ordering::Release);
-        debug_assert_ne!(value & UNIQUE_BIT, 0, "unique release of shared borrow");
-    }
+    pub fn release_mut(&self) {}
 }
 
 #[cfg(test)]
